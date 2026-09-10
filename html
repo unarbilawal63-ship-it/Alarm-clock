@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoPulse - Interactive Alarm Clock Suite</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Vector Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'ripple': 'ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 15px rgba(99, 102, 241, 0.3)' },
+                            '100%': { boxShadow: '0 0 35px rgba(99, 102, 241, 0.8)' }
+                        },
+                        ripple: {
+                            '0%': { transform: 'scale(0.8)', opacity: '1' },
+                            '100%': { transform: 'scale(2.2)', opacity: '0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Analog Clock Dial Depth */
+        .clock-face {
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.12);
+        }
+        .dark .clock-face {
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.65);
+        }
+
+        /* Clock Needle Transition Physics */
+        .hand {
+            transform-origin: 50% 100%;
+            transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+        }
+        .hand.second-hand {
+            transition: transform 0.2s cubic-bezier(0.4, 2.7, 0.55, 0.44);
+        }
+        
+        /* Translucent Glassmorphism backdrop */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        /* Custom Modern Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300 flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <div id="app" class="min-h-screen flex flex-col max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        
+        <!-- Header -->
+        <header class="glass rounded-2xl p-4 mb-6 shadow-sm border border-slate-200/70 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i class="fa-solid fa-clock text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">ChronoPulse</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Interactive Alarm & Productivity Suite</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/80 p-1.5 rounded-xl border border-slate-300/40 dark:border-slate-800 text-xs sm:text-sm font-medium overflow-x-auto max-w-full">
+                <button onclick="switchTab('clock')" id="tab-clock" class="nav-btn active flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-brand-600 dark:text-brand-400 bg-white dark:bg-slate-800 shadow-sm">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Alarms</span>
+                </button>
+                <button onclick="switchTab('world')" id="tab-world" class="nav-btn flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-globe"></i>
+                    <span>World Clock</span>
+                </button>
+                <button onclick="switchTab('stopwatch')" id="tab-stopwatch" class="nav-btn flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span>Stopwatch</span>
+                </button>
+                <button onclick="switchTab('timer')" id="tab-timer" class="nav-btn flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <span>Timer</span>
+                </button>
+                <button onclick="switchTab('sleep')" id="tab-sleep" class="nav-btn flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-moon"></i>
+                    <span>Sleep Sounds</span>
+                </button>
+            </nav>
+
+            <!-- Quick Settings -->
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleTheme()" class="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+                    <i id="theme-icon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+                <button onclick="toggleAudioContext()" id="audio-enable-btn" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors" title="Enable Sound Engine">
+                    <i class="fa-solid fa-volume-high"></i>
+                    <span class="hidden sm:inline font-medium">Audio Ready</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- TAB 1: ALARM CLOCK & MAIN TIME DISPLAY -->
+            <section id="view-clock" class="tab-view lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Clock Hero Display -->
+                <div class="lg:col-span-7 glass rounded-3xl p-6 sm:p-8 border border-slate-200/60 dark:border-slate-800/80 flex flex-col justify-between items-center text-center relative overflow-hidden min-h-[380px]">
+                    <!-- Ambient Glow Effects -->
+                    <div class="absolute -top-24 -left-24 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <!-- Top Switcher -->
+                    <div class="w-full flex justify-between items-center z-10 mb-4">
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleClockType('digital')" id="btn-clock-digital" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-sm transition-all">Digital</button>
+                            <button onclick="toggleClockType('analog')" id="btn-clock-analog" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all">Analog</button>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                            <span id="current-timezone-abbr">UTC</span>
+                            <button onclick="toggleTimeFormat()" id="btn-time-format" class="hover:text-brand-500 font-bold ml-1">12H</button>
+                        </div>
+                    </div>
+
+                    <!-- Digital View Container -->
+                    <div id="digital-clock-container" class="my-auto py-6 z-10">
+                        <div id="digital-time" class="font-mono text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
+                            00:00:<span class="text-3xl sm:text-5xl text-brand-500">00</span>
+                        </div>
+                        <div id="digital-ampm" class="text-xl sm:text-2xl font-bold text-brand-600 dark:text-brand-400 mt-1 uppercase tracking-widest">
+                            AM
+                        </div>
+                        <div id="digital-date" class="text-base sm:text-xl font-medium text-slate-600 dark:text-slate-300 mt-3">
+                            Monday, January 1, 2026
+                        </div>
+                    </div>
+
+                    <!-- Analog View Container -->
+                    <div id="analog-clock-container" class="hidden my-auto py-4 z-10">
+                        <div class="relative w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-white dark:bg-slate-900 border-4 border-slate-200 dark:border-slate-800 clock-face flex items-center justify-center shadow-xl">
+                            <div class="absolute inset-0 p-2 flex items-center justify-center">
+                                <span class="absolute top-2 font-bold text-slate-700 dark:text-slate-300 font-mono text-sm">12</span>
+                                <span class="absolute right-3 font-bold text-slate-700 dark:text-slate-300 font-mono text-sm">3</span>
+                                <span class="absolute bottom-2 font-bold text-slate-700 dark:text-slate-300 font-mono text-sm">6</span>
+                                <span class="absolute left-3 font-bold text-slate-700 dark:text-slate-300 font-mono text-sm">9</span>
+                            </div>
+
+                            <!-- Clock Hands -->
+                            <div id="analog-hour" class="hand absolute bottom-1/2 left-1/2 -ml-[3px] w-[6px] h-16 sm:h-20 bg-slate-800 dark:bg-slate-200 rounded-full z-20"></div>
+                            <div id="analog-minute" class="hand absolute bottom-1/2 left-1/2 -ml-[2px] w-[4px] h-22 sm:h-26 bg-brand-600 dark:bg-brand-400 rounded-full z-30"></div>
+                            <div id="analog-second" class="hand second-hand absolute bottom-1/2 left-1/2 -ml-[1px] w-[2px] h-24 sm:h-28 bg-rose-500 rounded-full z-40"></div>
+                            
+                            <!-- Center Pin -->
+                            <div class="w-4 h-4 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 z-50 shadow-md"></div>
+                        </div>
+                    </div>
+
+                    <!-- Next Upcoming Alarm Banner -->
+                    <div id="next-alarm-banner" class="w-full z-10 mt-4 bg-brand-50/80 dark:bg-brand-950/40 border border-brand-200/60 dark:border-brand-900/50 rounded-2xl p-3 sm:p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3 text-left">
+                            <div class="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                                <i class="fa-solid fa-bell"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-brand-600 dark:text-brand-300 font-medium">Next Alarm</div>
+                                <div id="next-alarm-text" class="text-sm font-semibold text-slate-800 dark:text-slate-200">No active alarms</div>
+                            </div>
+                        </div>
+                        <span id="next-alarm-time-left" class="text-xs font-mono font-medium px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm">--:--</span>
+                    </div>
+                </div>
+
+                <!-- Alarms Panel -->
+                <div class="lg:col-span-5 glass rounded-3xl p-6 border border-slate-200/60 dark:border-slate-800/80 flex flex-col h-full min-h-[420px]">
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-list-ul text-brand-500"></i>
+                            <h2 class="font-bold text-lg">Your Alarms</h2>
+                        </div>
+                        <button onclick="openAlarmModal()" class="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-medium text-xs sm:text-sm shadow-md shadow-brand-500/20 transition-all">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Alarm</span>
+                        </button>
+                    </div>
+
+                    <!-- Alarms Scroll Container -->
+                    <div id="alarms-list" class="flex-1 space-y-3 overflow-y-auto max-h-[460px] pr-1">
+                        <!-- Injected dynamically via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: WORLD CLOCK -->
+            <section id="view-world" class="tab-view hidden lg:col-span-12 space-y-6">
+                <div class="glass rounded-3xl p-6 border border-slate-200/60 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold">World Clock</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Track current time across international time zones</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="world-city-select" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="America/New_York">New York (EST/EDT)</option>
+                            <option value="Europe/London">London (GMT/BST)</option>
+                            <option value="Europe/Paris">Paris (CET/CEST)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            <option value="Australia/Sydney">Sydney (AEST)</option>
+                            <option value="Asia/Dubai">Dubai (GST)</option>
+                            <option value="Asia/Kolkata">Kolkata (IST)</option>
+                            <option value="America/Los_Angeles">Los Angeles (PST)</option>
+                        </select>
+                        <button onclick="addWorldClockFromSelect()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium shadow-sm transition-all">
+                            Add City
+                        </button>
+                    </div>
+                </div>
+
+                <div id="world-clock-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards populated by JS -->
+                </div>
+            </section>
+
+            <!-- TAB 3: STOPWATCH -->
+            <section id="view-stopwatch" class="tab-view hidden lg:col-span-12 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-7 glass rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800/80 flex flex-col items-center justify-center text-center space-y-6 min-h-[400px]">
+                        <div id="stopwatch-time" class="font-mono text-5xl sm:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            00:00<span class="text-3xl sm:text-5xl text-brand-500">.00</span>
+                        </div>
+
+                        <div class="flex items-center space-x-4">
+                            <button id="sw-btn-start" onclick="toggleStopwatch()" class="w-16 h-16 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-xl flex items-center justify-center shadow-lg shadow-brand-500/30 transition-all active:scale-95">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button id="sw-btn-lap" onclick="recordStopwatchLap()" disabled class="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed text-lg flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-flag"></i>
+                            </button>
+                            <button id="sw-btn-reset" onclick="resetStopwatch()" disabled class="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed text-lg flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5 glass rounded-3xl p-6 border border-slate-200/60 dark:border-slate-800/80 flex flex-col h-[400px]">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                            <h3 class="font-bold text-base flex items-center gap-2">
+                                <i class="fa-solid fa-list-ol text-brand-500"></i> Laps
+                            </h3>
+                            <span id="lap-count" class="text-xs font-mono font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">0 laps</span>
+                        </div>
+                        <div id="sw-laps-list" class="flex-1 overflow-y-auto space-y-2 mt-3 pr-1">
+                            <div class="text-center py-12 text-xs text-slate-400">No laps recorded 
